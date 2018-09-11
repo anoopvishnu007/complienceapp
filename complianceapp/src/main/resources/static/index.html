@@ -1,15 +1,719 @@
+
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  
-    <meta charset="utf-8">
-    <base href="/">
-    
-    <Title>Compliance block chain application</Title>
-   
-     
+  <!-- Standard Meta -->
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+
+  <!-- Site Properties -->
+  <title>CIX | Dashboard</title>
+  <link rel="stylesheet" type="text/css" href="semantic/semantic.min.css">
+  <link rel="stylesheet" type="text/css" href="css/reset.css">
+  <link rel="stylesheet" type="text/css" href="css/main.css">
+  <script
+  src="https://code.jquery.com/jquery-3.1.1.min.js"
+  integrity="sha256-hVVnYaiADRTO2PzUGmuLJr8BLUSjGIZsDYGmIJLv2b8="
+  crossorigin="anonymous"></script>
+  <script src="assets/js/easing.min.js"></script>
+  <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.4.8/angular.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.2.5/angular-route.min.js"></script>
+  <script>
+  var myApp = angular.module("plunker", ['ngRoute']);
+
+    myApp.config(['$routeProvider',
+
+    function ($routeProvider) {
+
+    $routeProvider.when('/', { templateUrl: 'communication.html' })
+    .when('/communication', { templateUrl: 'communication.html' })
+    .when('/communicationDetails', { templateUrl: 'communicationDetails.html' })
+    .when('/complaints', { templateUrl: 'complaints.html' })
+    .when('/complaintsDetails', { templateUrl: 'complaintsDetails.html' })
+    .when('/complaintsInvestigate', { templateUrl: 'complaintsInvestigate.html' })
+    .when('/consortium', { templateUrl: 'consortium.html' })
+    .when('/reports', { templateUrl: 'reports.html' });
+
+    }
+
+    ]);
+
+    myApp.controller('ngtemplatectrl', function ($scope,$location,communicationSvc) {
+
+    $scope.getClass = function (path) {
+        return ($location.path().substr(0, path.length) === path) ? 'active' : '';
+    }
+    $scope.goTo = function(path) {
+        $location.path(path)
+    }
+    $scope.getCommunications = function() {
+        communicationSvc.getCommunications().then(function(resp) {
+            console.log(resp);
+        })
+    }
+    $scope.getCommunications();
+
+    });
+    myApp.service('communicationSvc', function($http,$q) {
+        this.getCommunications = function() {
+            var deferred = $q.defer();
+            var url = 'compliance/getSmartContracts';
+            $http.post(url)
+                .success(function (data) {
+                    deferred.resolve(data);
+                })
+                .error(function (error) {
+                    deferred.reject(error);
+                });
+
+            return deferred.promise;
+        }
+    });
+  </script>
 </head>
-<body >
-<h1>Welcome to compliance block chain application</h1>
+<body ng-app="plunker">
+  <div class="ui vertical masthead center aligned segment">
+
+    <div class="ui container">
+      <div class="ui large secondary pointing menu">
+        <img class="ui middle aligned image left-logo" src="assets/img/nm.png">
+        <div class="right menu">
+            <img class="ui middle aligned image right-logo" src="assets/img/cix.png">
+        </div>
+      </div>
+    </div>
+
+    <div class="ui vertical segment" ng-controller="ngtemplatectrl">
+    <div class="ui container">
+        <div class="ui stackable inverted divided equal height stackable grid">
+            <div class="three wide column">
+                <div class="ui vertical steps">
+                    <div class="completed step cpl-step" ng-class="getClass('/communication')">
+                        <div class="content">
+                        <div class="title"><a href="#/communication">Communication Dashboard</a></div>
+                        </div>
+                    </div>
+                    <div class="completed step cpl-step" ng-class="getClass('/complaints')">
+                        <div class="content">
+                        <div class="title"><a href="#/complaints">Complaints</a></div>
+                        </div>
+                    </div>
+                    <div class="completed step cpl-step"  ng-class="getClass('/consortium')">
+                        <div class="title"><a href="#/consortium">Consortium</a></div>
+                        <div class="content">
+                        </div>
+                    </div>
+                    <div class="step cpl-step" ng-class="getClass('/reports')">
+                        <div class="title"><a href="#/reports">Reports</a></div>
+                        <div class="content">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="thirteen wide column">
+                <div ng-view>
+                    
+                </div>
+            </div>
+        </div>
+    </div>
+  </div>
+</div>
+<!-- Communication -->
+  <script type="text/ng-template" id="communication.html">
+    <table class="ui very basic celled table cpl-table">
+                    <thead>
+                        <tr>
+                            <th>Action</th>
+                            <th>Content</th>
+                            <th>Flag Type</th>
+                            <th>Criticality</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>
+                                <div class="ui toggle checkbox"><input type="checkbox"><label></label></div>
+                            </td>
+                            <td>
+                                <div class="one column row"><div class="column"><p class="cpl-table-content" ng-click=goTo('communicationDetails')>Looks interesting, can we connect later today for the Annuities…</p></div></div>
+                            </td>
+                            <td>
+                                <p>Market Misconduct</p>
+                            </td>
+                            <td>
+                                <i class="stop icon red"></i>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <div class="ui toggle checkbox"><input type="checkbox" checked="checked"><label></label></div>
+                            </td>
+                            <td>
+                                <div class="one column row"><div class="column"><p class="cpl-table-content">Premium payable on these policies per year impossibly high…</p></div></div>
+                            </td>
+                            <td>
+                                <p>Sales to Elderly</p>
+                            </td>
+                            <td>
+                                <i class="stop icon yellow"></i>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <div class="ui toggle checkbox"><input type="checkbox" checked="checked"><label></label></div>
+                            </td>
+                            <td>
+                                <div class="one column row"><div class="column"><p class="cpl-table-content">You’ll not be reimbursed for the value of a new machine…</p></div></div>
+                            </td>
+                            <td>
+                                <p>Replacement</p>
+                            </td>
+                            <td>
+                                <i class="stop icon yellow"></i>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <div class="ui toggle checkbox"><input type="checkbox"><label></label></div>
+                            </td>
+                            <td>
+                                <div class="one column row"><div class="column"><p class="cpl-table-content">Squandered entire retirement fund as single-premium ones …</p></div></div>
+                            </td>
+                            <td>
+                                <p>Sales to Elderly</p>
+                            </td>
+                            <td>
+                                <i class="stop icon red"></i>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <div class="ui toggle checkbox"><input type="checkbox"><label></label></div>
+                            </td>
+                            <td>
+                                <div class="one column row"><div class="column"><p class="cpl-table-content">Dissatisfied with the conduct of your Agent, Bob. Can we plea…</p></div></div>
+                            </td>
+                            <td>
+                                <p>Market Misconduct</p>
+                            </td>
+                            <td>
+                                <i class="stop icon grey"></i>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <div class="ui toggle checkbox"><input type="checkbox"><label></label></div>
+                            </td>
+                            <td>
+                                <div class="one column row"><div class="column"><p class="cpl-table-content">To replace your damaged belonging, we would like you to… </p></div></div>
+                            </td>
+                            <td>
+                                <p>Replacement</p>
+                            </td>
+                            <td>
+                                <i class="stop icon grey"></i>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <div class="ui toggle checkbox"><input type="checkbox"><label></label></div>
+                            </td>
+                            <td>
+                                <div class="one column row"><div class="column"><p class="cpl-table-content">The address changed & there was immediately a surrender…</p></div></div>
+                            </td>
+                            <td>
+                                <p>Surrender</p>
+                            </td>
+                            <td>
+                                <i class="stop icon grey"></i>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <div class="ui toggle checkbox"><input type="checkbox" checked="checked"><label></label></div>
+                            </td>
+                            <td>
+                                <div class="one column row"><div class="column"><p class="cpl-table-content">Sorry, but we cannot accept your claim. Please reach out to…</p></div></div>
+                            </td>
+                            <td>
+                                <p>Replacement</p>
+                            </td>
+                            <td>
+                                <i class="stop icon yellow"></i>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+  </script>
+<!-- Communication -->
+
+<!-- comm-details -->
+  <script type="text/ng-template" id="communicationDetails.html">
+    <div class="ui grid">
+        <div class="twelve wide column">
+            <h4>Content</h4>
+            <table class="ui unstackable table">
+                    <tbody>
+                        <tr>
+                            <td>
+                                <div class="ui grid">
+                                    <div class="one wide column"><i class="star outline icon"></i></div>
+                                    <div class="four wide column"><i class="circle icon green"></i><label class="green">Dave Taylor</label></div>
+                                    <div class="seven wide column"><p>Came out really well here are the</p></div>
+                                    <div class="four wide column">Aug 18 (2 days ago)</div>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <div class="ui grid">
+                                    <div class="one wide column"><i class="star outline icon"></i></div>
+                                    <div class="four wide column"><i class="minus circle icon red"></i><label class="red">Yvonnne Lynott</label></div>
+                                    <div class="seven wide column"><p>Looks interesting, can we conn </p></div>
+                                    <div class="four wide column">Aug 19 (2 days ago)</div>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <div class="ui grid">
+                                    <div class="one wide column"><i class="star outline icon"></i></div>
+                                    <div class="four wide column"><i class="circle icon green"></i><label class="green">Dave Taylor</label></div>
+                                    <div class="seven wide column"><p>Thanks, How about " Annuities Sec</p></div>
+                                    <div class="four wide column">Aug 19 (2 days ago)</div>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <div class="ui grid">
+                                    <div class="one wide column"><i class="star outline icon"></i></div>
+                                    <div class="four wide column"><i class="minus circle icon red"></i><label class="red">Yvonnne Lynott</label></div>
+                                    <div class="seven wide column"><p>Yes, that works</p></div>
+                                    <div class="four wide column">Aug 19 (2 days ago)</div>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <div class="ui grid">
+                                    <div class="one wide column"><i class="star outline icon"></i></div>
+                                    <div class="four wide column"><i class="circle icon green"></i><label class="green">Dave Taylor</label></div>
+                                    <div class="seven wide column"><p>To Yvon <a href="">show details</a>Aug 19 (2 days ago)</p></div>
+                                    <div class="four wide column"><button class="ui labeled icon button">
+                                    <i class="reply icon"></i>
+                                        Reply
+                                    </button></div>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <p style="padding:10px">
+                                    Yvonne,
+                                    <br>
+                                    <br>
+                                    I recommend the LPPO product. It has seen a steady growth of sales of late. It is a recommended product since you had requested for capital preservation, safety and security
+                                </p>
+                                <p style="font-size: 10px;padding: 10px;color: purple;">-show quoted text-</p>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+        </div>
+        <div class="four wide column">
+            <h4>Analysis</h4>
+            <div class="ui two column centered grid">
+                    <div class="item">
+                        <div class="ui small image analysis-img">
+                            <img class="ui tiny right image" src="assets/img/92-percent.png" alt="">
+                        </div>
+                        <label class="analysis-percentage">92%</label>
+                        <div class="analysis-text">
+                            High probability for Market misconduct
+                        </div>
+                        <br>
+                        <div class="ui button" tabindex="0">
+                            Client > 70 years old
+                        </div>
+                        <div class="ui hidden divider"></div>
+                        <div class="ui button" tabindex="0">
+                            Type of policy has 35 complaints YTD for the same demographic of customers
+                        </div>
+                        <div class="ui hidden divider"></div>
+                        <div class="ui button" tabindex="0">
+                            Type of policy not suited for capital preservation
+                        </div>
+                    </div>
+                </div>
+            </div>
+    </div>
+  </script>
+<!-- comm-details -->
+
+<!-- complaints -->
+  <script type="text/ng-template" id="complaints.html">
+    <table class="ui very basic celled table cpl-table">
+                    <thead>
+                        <tr>
+                            <th>Action</th>
+                            <th>Content</th>
+                            <th>Flag Type</th>
+                            <th>Criticality</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>
+                                <div class="ui toggle checkbox"><input type="checkbox"><label></label></div>
+                            </td>
+                            <td>
+                                <div class="one column row"><div class="column"><p class="cpl-table-content" ng-click=goTo('complaintsDetails')>Requested policy surrender in march but was not surrendered…</p></div></div>
+                            </td>
+                            <td>
+                                <p>Cancellation</p>
+                            </td>
+                            <td>
+                                <i class="stop icon red"></i>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <div class="ui toggle checkbox"><input type="checkbox" checked="checked"><label></label></div>
+                            </td>
+                            <td>
+                                <div class="one column row"><div class="column"><p class="cpl-table-content">Agent lacked skill and knowledge  </p></div></div>
+                            </td>
+                            <td>
+                                <p>Delays</p>
+                            </td>
+                            <td>
+                                <i class="stop icon yellow"></i>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <div class="ui toggle checkbox"><input type="checkbox" checked="checked"><label></label></div>
+                            </td>
+                            <td>
+                                <div class="one column row"><div class="column"><p class="cpl-table-content">Misleading statement</p></div></div>
+                            </td>
+                            <td>
+                                <p>Miscellaneous</p>
+                            </td>
+                            <td>
+                                <i class="stop icon yellow"></i>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <div class="ui toggle checkbox"><input type="checkbox"><label></label></div>
+                            </td>
+                            <td>
+                                <div class="one column row"><div class="column"><p class="cpl-table-content">Unhappy with level of service from my current agent </p></div></div>
+                            </td>
+                            <td>
+                                <p>Misrepresentation</p>
+                            </td>
+                            <td>
+                                <i class="stop icon red"></i>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <div class="ui toggle checkbox"><input type="checkbox"><label></label></div>
+                            </td>
+                            <td>
+                                <div class="one column row"><div class="column"><p class="cpl-table-content">Product does not meet my needs</p></div></div>
+                            </td>
+                            <td>
+                                <p>Miscellaneous</p>
+                            </td>
+                            <td>
+                                <i class="stop icon grey"></i>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <div class="ui toggle checkbox"><input type="checkbox"><label></label></div>
+                            </td>
+                            <td>
+                                <div class="one column row"><div class="column"><p class="cpl-table-content">I was assured that my investment can be taken out on need …</p></div></div>
+                            </td>
+                            <td>
+                                <p>Miscellaneous</p>
+                            </td>
+                            <td>
+                                <i class="stop icon grey"></i>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <div class="ui toggle checkbox"><input type="checkbox" checked="checked"><label></label></div>
+                            </td>
+                            <td>
+                                <div class="one column row"><div class="column"><p class="cpl-table-content">WI board of aging and long term care stating concerns about..</p></div></div>
+                            </td>
+                            <td>
+                                <p>Delays</p>
+                            </td>
+                            <td>
+                                <i class="stop icon grey"></i>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <div class="ui toggle checkbox"><input type="checkbox"><label></label></div>
+                            </td>
+                            <td>
+                                <div class="one column row"><div class="column"><p class="cpl-table-content">Policy performance missed sales illustration by 66% on the..</p></div></div>
+                            </td>
+                            <td>
+                                <p>Agent mishandling</p>
+                            </td>
+                            <td>
+                                <i class="stop icon yellow"></i>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+  </script>
+<!-- complaints -->
+
+<!-- comm-details -->
+  <script type="text/ng-template" id="complaintsDetails.html">
+    <div class="ui grid">
+        <div class="twelve wide column">
+            <h4>Summary of Complaint</h4>
+            <div class="ui equal width form">
+                <div class="fields">
+                    <div class="field">
+                    <label>Complaint#</label>
+                    <input type="text" value="KIA233166" disabled>
+                    </div>
+                    <div class="field">
+                    <label>Policy</label>
+                    <input type="text" value="243AIK77973" disabled>
+                    </div>
+                </div>
+                <div class="fields">
+                    <div class="field">
+                    <label>Department</label>
+                    <input type="text" value="Insurance & Annuities" disabled>
+                    </div>
+                </div>
+                <div class="fields">
+                    <div class="field">
+                    <label>Summary</label>
+                    <div class="ui bulleted list" style="text-align:left">
+                        <div class="item">
+                            Customer is 82 year-old widow, active, wealthy and involved in her affairs.
+                        </div>
+                        <div class="item">
+                            Planning to leave estate to charity. Long-term relationship with adviser for several years. Composition of portfolio changed, 25 stocks purchased, of which 11 deemed unsuitable
+                        </div>
+                        <div class="item">
+                            NM is underwriter for each of these 11 securities
+                        </div>
+                        <div class="item">Advisor acted in good faith and received normal commission</div>
+                        <div class="item">Customer understood and followed recommendations, but these were deemed unsuitably too risky</div>
+                    </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="four wide column">
+            <h4>Related  Smart Contracts present in consortium</h4>
+            <div class="ui hidden divider"></div>
+            <div class="ui grid">
+                <div class="three wide column contract-info">
+                    <img class="ui mini right image" src="assets/img/contract.png" alt="">
+                </div>
+                <div class="nine wide column contract-info">
+                    <div class="ui button" tabindex="0">
+                                NMASBT#73701
+                    </div>
+                </div>
+                <div class="five wide column contract-info"></div>
+                <div class="nine wide column contract-info">
+                    <div class="meta">
+                        <p>Status : Pending</p>
+                        <p>Date : 27MAY2018</p>
+                    </div>
+                </div>
+            </div>
+            <div class="ui grid">
+                <div class="three wide column contract-info">
+                    <img class="ui mini right image" src="assets/img/contract.png" alt="">
+                </div>
+                <div class="nine wide column contract-info">
+                    <div class="ui button" tabindex="0">
+                                UES#20189
+                    </div>
+                </div>
+                <div class="five wide column contract-info"></div>
+                <div class="nine wide column contract-info">
+                    <div class="meta">
+                        <p>Status : Approved</p>
+                        <p>Date : 27MAY2018</p>
+                    </div>
+                </div>
+            </div>
+    </div>
+
+    <button class="ui button" ng-click=goTo('complaintsInvestigate')>
+    Initiate Investigations
+    </button>
+    <button class="ui button">
+    Initiate Separation
+    </button>
+    <button class="ui button">
+    Report to NAIC
+    </button>
+  </script>
+<!-- comm-details -->
+
+<!-- investigate -->
+  <script type="text/ng-template" id="complaintsInvestigate.html">
+    <div class="ui raised segment">
+            <table class="ui celled definition table segment">
+                <tbody>
+                    <tr>
+                    <td>Complaint Number</td>
+                    <td>KIA233166</td>
+                    </tr>
+                    <tr>
+                    <td>Description of Complaint</td>
+                    <td>Requested for capital preservation, safety and security but the agent has invested in risky bonds asset that has lost $50K within last 4 months</td>
+                    </tr>
+                    <tr>
+                    <td>Actions taken up by Insurer to correct course and resolve the complaint</td>
+                    <td>Validated if Agent  was sanctioned by NASD (confirmed in appeal by SEC) and licensed by FINRA
+Complaint forwarded to WISCONSIN board of aging and long term care.
+Paid $250,000 USD in restitution to customer for mis-selling of the product
+Incorporated new Form VIC0830 for all future policies sold to customers greater than 50 years of age</td>
+                    </tr>
+                    <tr>
+                    <td>Feedback of client on resolution and confirming closure of issue</td>
+                    <td>Customer accepted settlement plan. Has formally signed a legal deed</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <button class="ui right floated medium primary button" ng-click=goTo('consortium')>PUBLISH TO CONSORTIUM</button>
+  </script>
+<!-- investigate -->
+
+
+<!-- Communication -->
+  <script type="text/ng-template" id="consortium.html">
+    <table class="ui very basic celled table cpl-table">
+                    <thead>
+                        <tr>
+                            <th></th>
+                            <th></th>
+                            <th>Initiated By</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>
+                                <img class="ui mini right spaced image" src="assets/img/contract.png" alt="">
+                                <div class="ui button" tabindex="0" style="width: 150px;">NMASBT#73701</div>
+                            </td>
+                            <td>
+                                <div class="meta">
+                                    <p>Status : Approved</p>
+                                    <p>Date : 31MAY2018</p>
+                                </div>
+                            </td>
+                            <td>
+                                <img class="ui small right image" src="assets/img/metlife.png" alt="">
+                            </td>
+                            <td>
+                                <button class="ui button primary">
+                                    APPROVED
+                                </button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <img class="ui mini right spaced image" src="assets/img/contract.png" alt="">
+                                <div class="ui button" tabindex="0" style="width: 150px;">UES#20189</div>
+                            </td>
+                            <td>
+                                <div class="meta">
+                                    <p>Status : Pending</p>
+                                    <p>Date : 27MAY2018</p>
+                                </div>
+                            </td>
+                            <td>
+                                <img class="ui small right image" src="assets/img/nyl.png" alt="">
+                            </td>
+                            <td>
+                                <button class="ui button">
+                                    EDIT
+                                </button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <img class="ui mini right spaced image" src="assets/img/contract.png" alt="">
+                                <div class="ui button" tabindex="0"  style="width: 150px;">NMASBT#73701</div>
+                            </td>
+                            <td>
+                                <div class="meta">
+                                    <p>Status : Pending</p>
+                                    <p>Date : 27MAY2018</p>
+                                </div>
+                            </td>
+                            <td>
+                                <img class="ui small right image" src="assets/img/mmfg.png" alt="">
+                            </td>
+                            <td>
+                                <button class="ui button">
+                                    EDIT
+                                </button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <img class="ui mini right spaced image" src="assets/img/contract.png" alt="">
+                                <div class="ui button" tabindex="0" style="width: 150px;">UES#20189</div>
+                            </td>
+                            <td>
+                                <div class="meta">
+                                    <p>Status : Pending</p>
+                                    <p>Date : 27MAY2018</p>
+                                </div>
+                            </td>
+                            <td>
+                                <img class="ui tiny middle image" src="assets/img/usaa.png" alt="">
+                            </td>
+                            <td>
+                                <button class="ui button">
+                                    EDIT
+                                </button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+  </script>
+<!-- Communication -->
+
+  <script src="assets/js/highlight.min.js"></script>
+  <script src="assets/js/underscore.min.js"></script>
+<script src="semantic/semantic.min.js"></script>
+<script type="text/javascript">
+$(document)
+  .ready(function(){
+    $('.demo .ui.checkbox')
+      .checkbox();
+  });
+</script>
 </body>
+
 </html>
