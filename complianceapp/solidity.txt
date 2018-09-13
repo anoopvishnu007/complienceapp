@@ -1,0 +1,47 @@
+pragma solidity ^0.4.18;
+  contract smartcontract {
+
+    uint ageLimit;
+    uint licensedAgent;
+    uint[] agentArray;
+  
+     // Constructor
+    function smartcontract(uint _age,uint _agentNum) public {
+        ageLimit = _age;
+        licensedAgent = _agentNum;
+
+    }
+
+    
+    function validateAgeLimit(uint _age) view public  returns(bool) {
+
+        if(_age > ageLimit) {
+          return true;
+        }else{
+          return false;
+        } 
+     }
+
+    function isLicensed(uint _agentNum) view public  returns(bool) {
+
+       if(_agentNum == licensedAgent) {
+          return true;
+        } else{
+          return false; 
+        }
+         
+        
+     }
+    
+
+    function triggerResolution(uint _age,uint _agentNum) view public returns(string){
+
+      if(validateAgeLimit(_age)){
+        return "Fine $30000 paid to the insured as the policy is sold to an elderly person";
+      }else if(!isLicensed(_agentNum)){
+        return "Fine $50000 paid to the insured as the agent was not licensed to sell in the state";
+      }
+      
+    }
+    
+  }
