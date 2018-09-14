@@ -1,6 +1,6 @@
 
 <!DOCTYPE html>
-<html>
+<html ng-app="plunker">
 <head>
   <!-- Standard Meta -->
   <meta charset="utf-8" />
@@ -21,25 +21,33 @@
     <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.2.5/angular-route.min.js"></script>
   <script>
   var myApp = angular.module("plunker", ['ngRoute']);
+  var rootUrl = 'http://localhost:3000/'
+  var thirteenCol = 'thirteen wide column'
+  var sixCol = 'six wide column'
 
     myApp.config(['$routeProvider',
 
     function ($routeProvider) {
 
-    $routeProvider.when('/', { templateUrl: 'communication.html' })
+    $routeProvider.when('/', { templateUrl: 'login.html' })
+    .when('/login', { templateUrl: 'login.html' })
     .when('/communication', { templateUrl: 'communication.html' })
-    .when('/communicationDetails', { templateUrl: 'communicationDetails.html' })
-    .when('/complaints', { templateUrl: 'complaints.html' })
-    .when('/complaintsDetails', { templateUrl: 'complaintsDetails.html' })
-    .when('/complaintsInvestigate', { templateUrl: 'complaintsInvestigate.html' })
-    .when('/consortium', { templateUrl: 'consortium.html' })
+    .when('/complaints', { templateUrl: 'complaints.html',controller:"complaintCtrl" })
+    .when('/complaintsDetails/:id', { templateUrl: 'complaintsDetails.html',controller:"complaintCtrl" })
+    .when('/complaintsInvestigate/:id/:contractId', { templateUrl: 'complaintsInvestigate.html',controller:"complaintCtrl" })
+    .when('/consortium', { templateUrl: 'consortium.html',controller:"complaintCtrl" })
     .when('/reports', { templateUrl: 'reports.html' });
 
     }
 
     ]);
 
-    myApp.controller('ngtemplatectrl', function ($scope,$location,communicationSvc) {
+    myApp.controller('ngtemplatectrl', function ($scope,$location,dataSvc,LoginService,$sce,$rootScope) {
+        $rootScope.loading = false;
+        $scope.username = '';
+        $scope.loginSuccess = localStorage.getItem('loginSuccess');
+        $scope.username = localStorage.getItem('username');
+        $scope.userid = localStorage.getItem('userid');
 
     $scope.getClass = function (path) {
         return ($location.path().substr(0, path.length) === path) ? 'active' : '';
@@ -47,19 +55,321 @@
     $scope.goTo = function(path) {
         $location.path(path)
     }
-    $scope.getCommunications = function() {
-        communicationSvc.getCommunications().then(function(resp) {
-            console.log(resp);
+    $scope.formSubmit = function(username) {
+        $rootScope.loading = true;
+        LoginService.login(username).then(function(resp) {
+            if(resp.length && resp[0].id) {
+                $scope.error = '';
+                $scope.username = '';
+                localStorage.setItem('loginSuccess','true');
+                localStorage.setItem('username',resp[0].name);
+                localStorage.setItem('userid',resp[0].id);
+                $scope.loginSuccess = 'true';
+                $scope.username = resp[0].name;
+                $scope.userid = resp[0].id;
+                $rootScope.loading = false;
+                $location.path('complaints');
+            } else {
+                $rootScope.loading = false;
+                $scope.error = "Login Error !";
+            }
         })
+    };
+    $scope.logout = function() {
+        $rootScope.loading = true;
+        localStorage.setItem('loginSuccess','false');
+        localStorage.removeItem('username');
+        localStorage.removeItem('userid');
+        $scope.loginSuccess = 'false';
+        $rootScope.loading = false;
+        $location.path('/');
     }
-    $scope.getCommunications();
-
+    $scope.loginClass = $scope.loginSuccess == 'false' ?  sixCol : thirteenCol;
     });
-    myApp.service('communicationSvc', function($http,$q) {
+    myApp.controller('complaintCtrl', function ($scope,$location,dataSvc,LoginService,$routeParams,$sce,$route,$rootScope) {
+        var id = $routeParams.id;
+        $scope.getComplaints = function() {
+            $rootScope.loading = true;
+            dataSvc.getComplaints().then(function(resp) {
+                $scope.complaints = resp;
+                $rootScope.loading = false;
+            })
+        }
+        $scope.getContracts = function() {
+            $rootScope.loading = true;
+            dataSvc.getContracts().then(function(resp) {
+                $scope.contracts = resp;
+                $rootScope.loading = false;
+            })
+        }
+        $scope.getUnapprovedContracts = function() {
+            $rootScope.loading = true;
+            dataSvc.getUnapprovedContracts().then(function(resp) {
+                $scope.contractsList = resp;
+                $rootScope.loading = false;
+            })
+        }
+        $scope.getAllContracts = function() {
+            $rootScope.loading = true;
+            dataSvc.getContracts().then(function(resp) {
+                $scope.contractsList = resp;
+                $rootScope.loading = false;
+            })
+        }
+        $scope.getContractsStartEnd = function() {
+            $rootScope.loading = true;
+            dataSvc.getContractsStartEnd(0,2).then(function(resp) {
+                $scope.contracts = resp;
+                $rootScope.loading = false;
+            })
+        }
+
+        $scope.getComplaintDetails = function(id) {
+            $rootScope.loading = true;
+            dataSvc.getComplaintDetails(id).then(function(resp) {
+                $scope.complaintData = resp;
+                $rootScope.loading = false;
+            })
+        }
+        
+        $scope.getContractDetails = function(id) {
+            $rootScope.loading = true;
+            dataSvc.getContractDetails(id).then(function(resp) {
+                $scope.contractData = resp;
+                $rootScope.loading = false;
+            })
+        }
+        
+        if(id) {
+            console.log($location.path())
+            if($location.path().indexOf('complaintsDetails' != -1) && $location.path().indexOf('complaintsInvestigate') == -1) {
+                console.log('complaintsDetails')
+                $scope.getContractsStartEnd();
+                $scope.getComplaintDetails(id);
+            } else if($location.path().indexOf('complaintsInvestigate') != -1) {
+                console.log('complaintsDetailsinvestin')
+                $scope.getContractDetails($routeParams.contractId);
+            } else {
+                
+            }
+        }
+        $scope.editContract = function(contractId) {
+            $location.path('complaintsInvestigate/1/'+contractId);
+        };
+
+        $scope.approveContract = function(contractId) {
+            $rootScope.loading = true;
+            dataSvc.approveContract(contractId).then(function(resp) {
+                $scope.contract = resp;
+                if(resp.id) {
+                    $rootScope.loading = false;
+                    $location.path('consortium');
+                    $route.reload();
+                }
+            })
+        }
+
+        $scope.publishContract = function(contractId) {
+            $rootScope.loading = true;
+            var complaintId = $routeParams.id;
+            dataSvc.publishContract(complaintId,contractId).then(function(resp) {
+                $scope.contract = resp;
+                if(resp.id) {
+                    $rootScope.loading = false;
+                    $location.path('consortium');
+                }
+            })
+        }
+        
+        $scope.applyContract = function() {
+            $('.small.modal')
+                .modal('show')
+                $location.path('consortium');
+            ;
+        }
+    });
+    myApp.factory('LoginService', function($q,$http) {
+
+    this.login = function(username) {
+        var deferred = $q.defer();
+        var url = rootUrl+'users?name='+username;
+        $http.get(url)
+            .success(function (data) {
+                deferred.resolve(data);
+            })
+            .error(function (error) {
+                deferred.reject(error);
+            });
+
+        return deferred.promise;
+    }
+    return this
+    
+  });
+    myApp.service('dataSvc', function($http,$q) {
+        this.userId = localStorage.getItem('userid');
+        this.username = localStorage.getItem('username');
         this.getCommunications = function() {
             var deferred = $q.defer();
-            var url = 'compliance/getSmartContracts';
-            $http.post(url)
+            var url = rootUrl+'communications';
+            $http.get(url)
+                .success(function (data) {
+                    deferred.resolve(data);
+                })
+                .error(function (error) {
+                    deferred.reject(error);
+                });
+
+            return deferred.promise;
+        }
+        this.getComplaints = function() {
+            var deferred = $q.defer();
+            var str = '';
+            if(this.username != 'regulator') {
+                str += '?createdBy='+this.username;
+            } else {
+                str += '';
+            }
+            var url = rootUrl+'complaints'+str;
+            $http.get(url)
+                .success(function (data) {
+                    deferred.resolve(data);
+                })
+                .error(function (error) {
+                    deferred.reject(error);
+                });
+
+            return deferred.promise;
+        }
+        this.getContracts = function() {
+            var deferred = $q.defer();
+            var url = rootUrl+'contracts';
+            $http.get(url)
+                .success(function (data) {
+                    deferred.resolve(data);
+                })
+                .error(function (error) {
+                    deferred.reject(error);
+                });
+
+            return deferred.promise;
+        }
+        this.getUnapprovedContracts = function() {
+            var deferred = $q.defer();
+            var str = '';
+            if(this.username != 'regulator') {
+                str += '?createdBy='+this.username;
+            } else {
+                str += '?status=pending';
+            }
+            var url = rootUrl+'contracts'+str;
+            $http.get(url)
+                .success(function (data) {
+                    deferred.resolve(data);
+                })
+                .error(function (error) {
+                    deferred.reject(error);
+                });
+
+            return deferred.promise;
+        }
+        this.getContractsStartEnd = function(start,end) {
+            var deferred = $q.defer();
+            var url = rootUrl+'contracts?_start='+start+'&_end='+end;
+            $http.get(url)
+                .success(function (data) {
+                    deferred.resolve(data);
+                })
+                .error(function (error) {
+                    deferred.reject(error);
+                });
+
+            return deferred.promise;
+        }
+        this.getContractDetails = function(id) {
+            var deferred = $q.defer();
+            var url = rootUrl+'contracts/'+id;
+            $http.get(url)
+                .success(function (data) {
+                    deferred.resolve(data);
+                })
+                .error(function (error) {
+                    deferred.reject(error);
+                });
+
+            return deferred.promise;
+        }
+        this.getComplaintDetails = function(id) {
+            var deferred = $q.defer();
+            var url = rootUrl+'complaints/'+id;
+            $http.get(url)
+                .success(function (data) {
+                    deferred.resolve(data);
+                })
+                .error(function (error) {
+                    deferred.reject(error);
+                });
+
+            return deferred.promise;
+        }
+        this.copyContract = function(scId) {
+            var deferred = $q.defer();
+            var url = rootUrl+'contracts';
+            var _this = this;
+            this.getContractDetails(scId).then(function(res) {
+                delete res.id;
+                res.status = "pending";
+                res.createdBy = _this.username;
+                console.log(_this.userId);
+                $http.post(url,res)
+                    .success(function (data) {
+                        deferred.resolve(data);
+                    })
+                    .error(function (error) {
+                        deferred.reject(error);
+                    });
+            })
+            return deferred.promise;
+        }
+        this.approveContract = function(scId) {
+            var deferred = $q.defer();
+            var url = rootUrl+'contracts/'+scId;
+            var _this = this;
+            this.getContractDetails(scId).then(function(res) {
+                delete res.id;
+                res.status = "approved";
+                $http.put(url,res)
+                    .success(function (data) {
+                        deferred.resolve(data);
+                    })
+                    .error(function (error) {
+                        deferred.reject(error);
+                    });
+            })
+            return deferred.promise;
+        }
+        this.publishContract = function(cplId,scId) {
+            var deferred = $q.defer();
+            var url = rootUrl+'complaints/'+cplId;
+            var _this = this;
+            this.getComplaintDetails(cplId).then(function(res) {
+                _this.copyContract(scId).then(function(resp) {
+                    res.appliedConsortium = resp.id;
+                    $http.put(url,res)
+                    .success(function (data) {
+                        deferred.resolve(data);
+                    })
+                    .error(function (error) {
+                        deferred.reject(error);
+                    });  
+                })
+            })
+            return deferred.promise;
+        }
+        this.postApporveComplaint = function(cplId) {
+            var deferred = $q.defer();
+            var url = rootUrl+'complaints/'+id;
+            $http.get(url)
                 .success(function (data) {
                     deferred.resolve(data);
                 })
@@ -70,24 +380,28 @@
             return deferred.promise;
         }
     });
+    myApp.filter('unsafe', function($sce) { return $sce.trustAsHtml; });
   </script>
 </head>
-<body ng-app="plunker">
+<body ng-controller="ngtemplatectrl">
+        <div class="ui active inverted dimmer" ng-show="loading">
+            <div class="ui medium text loader">Loading</div>
+        </div>
   <div class="ui vertical masthead center aligned segment">
 
-    <div class="ui container">
+    <div class="ui container" ng-show="loginSuccess == 'true'">
       <div class="ui large secondary pointing menu">
-        <img class="ui middle aligned image left-logo" src="assets/img/nm.png">
+        <h3 class="ui middle aligned image" style="top:20px">{{username}}</h3>
         <div class="right menu">
             <img class="ui middle aligned image right-logo" src="assets/img/cix.png">
         </div>
       </div>
     </div>
 
-    <div class="ui vertical segment" ng-controller="ngtemplatectrl">
+    <div class="ui vertical segment">
     <div class="ui container">
-        <div class="ui stackable inverted divided equal height stackable grid">
-            <div class="three wide column">
+        <div class="ui stackable divided equal height stackable grid center aligned">
+            <div class="three wide column" ng-show="loginSuccess == 'true'">
                 <div class="ui vertical steps">
                     <div class="completed step cpl-step" ng-class="getClass('/communication')">
                         <div class="content">
@@ -111,15 +425,49 @@
                     </div>
                 </div>
             </div>
-            <div class="thirteen wide column">
+            <!--<div class="{{loginClass}}">-->
+            <!--<div ng-class="{'false':'six wide column', 'true':'thirteen wide column'}[loginSuccess]" >
+            <div ng-class="{'false':'six wide column', 'true':'thirteen wide column'}[loginSuccess]" >-->
+                <div class="thirteen wide column" ng-if="loginSuccess=='true'">
+                
                 <div ng-view>
                     
                 </div>
             </div>
+            <div class="six wide column" ng-if="loginSuccess=='false'" >
+                <div ng-view>
+                    
+                </div>
+            </div
         </div>
+    </div>
+    <div class="one wide column" ng-show="loginSuccess == 'true'" style="position: absolute;bottom: 5%;right: 6%;">
+        <button class="ui small blue button" ng-click="logout()">Sign Out</button>
     </div>
   </div>
 </div>
+<!-- login -->
+  <script type="text/ng-template" id="login.html">
+    <div class="column">
+        <img src="assets/img/cix.png" class="image">
+        <form class="ui large form">
+        <div class="ui stacked segment">
+            <div class="field">
+            <div class="ui left icon input">
+                <i class="user icon"></i>
+                <input type="text" name="username" placeholder="Organisation Name" ng-model="username">
+            </div>
+            </div>
+            <div class="ui fluid large blue submit button" ng-click="formSubmit(username)">Sign In</div>
+        </div>
+
+        <div class="ui error message">{{error}}</div>
+
+        </form>
+    </div>
+  </script>
+<!-- login -->
+
 <!-- Communication -->
   <script type="text/ng-template" id="communication.html">
     <table class="ui very basic celled table cpl-table">
@@ -193,7 +541,7 @@
                                 <div class="ui toggle checkbox"><input type="checkbox"><label></label></div>
                             </td>
                             <td>
-                                <div class="one column row"><div class="column"><p class="cpl-table-content">Dissatisfied with the conduct of your Agent, Bob. Can we plea…</p></div></div>
+                                <div class="one column row"><div class="column"><p class="cpl-table-content">Dissatisfied with the conduct of your Agent, Bob. Can we plea…</p></div></div>
                             </td>
                             <td>
                                 <p>Market Misconduct</p>
@@ -249,113 +597,10 @@
   </script>
 <!-- Communication -->
 
-<!-- comm-details -->
-  <script type="text/ng-template" id="communicationDetails.html">
-    <div class="ui grid">
-        <div class="twelve wide column">
-            <h4>Content</h4>
-            <table class="ui unstackable table">
-                    <tbody>
-                        <tr>
-                            <td>
-                                <div class="ui grid">
-                                    <div class="one wide column"><i class="star outline icon"></i></div>
-                                    <div class="four wide column"><i class="circle icon green"></i><label class="green">Dave Taylor</label></div>
-                                    <div class="seven wide column"><p>Came out really well here are the</p></div>
-                                    <div class="four wide column">Aug 18 (2 days ago)</div>
-                                </div>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>
-                                <div class="ui grid">
-                                    <div class="one wide column"><i class="star outline icon"></i></div>
-                                    <div class="four wide column"><i class="minus circle icon red"></i><label class="red">Yvonnne Lynott</label></div>
-                                    <div class="seven wide column"><p>Looks interesting, can we conn </p></div>
-                                    <div class="four wide column">Aug 19 (2 days ago)</div>
-                                </div>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>
-                                <div class="ui grid">
-                                    <div class="one wide column"><i class="star outline icon"></i></div>
-                                    <div class="four wide column"><i class="circle icon green"></i><label class="green">Dave Taylor</label></div>
-                                    <div class="seven wide column"><p>Thanks, How about " Annuities Sec</p></div>
-                                    <div class="four wide column">Aug 19 (2 days ago)</div>
-                                </div>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>
-                                <div class="ui grid">
-                                    <div class="one wide column"><i class="star outline icon"></i></div>
-                                    <div class="four wide column"><i class="minus circle icon red"></i><label class="red">Yvonnne Lynott</label></div>
-                                    <div class="seven wide column"><p>Yes, that works</p></div>
-                                    <div class="four wide column">Aug 19 (2 days ago)</div>
-                                </div>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>
-                                <div class="ui grid">
-                                    <div class="one wide column"><i class="star outline icon"></i></div>
-                                    <div class="four wide column"><i class="circle icon green"></i><label class="green">Dave Taylor</label></div>
-                                    <div class="seven wide column"><p>To Yvon <a href="">show details</a>Aug 19 (2 days ago)</p></div>
-                                    <div class="four wide column"><button class="ui labeled icon button">
-                                    <i class="reply icon"></i>
-                                        Reply
-                                    </button></div>
-                                </div>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>
-                                <p style="padding:10px">
-                                    Yvonne,
-                                    <br>
-                                    <br>
-                                    I recommend the LPPO product. It has seen a steady growth of sales of late. It is a recommended product since you had requested for capital preservation, safety and security
-                                </p>
-                                <p style="font-size: 10px;padding: 10px;color: purple;">-show quoted text-</p>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-        </div>
-        <div class="four wide column">
-            <h4>Analysis</h4>
-            <div class="ui two column centered grid">
-                    <div class="item">
-                        <div class="ui small image analysis-img">
-                            <img class="ui tiny right image" src="assets/img/92-percent.png" alt="">
-                        </div>
-                        <label class="analysis-percentage">92%</label>
-                        <div class="analysis-text">
-                            High probability for Market misconduct
-                        </div>
-                        <br>
-                        <div class="ui button" tabindex="0">
-                            Client > 70 years old
-                        </div>
-                        <div class="ui hidden divider"></div>
-                        <div class="ui button" tabindex="0">
-                            Type of policy has 35 complaints YTD for the same demographic of customers
-                        </div>
-                        <div class="ui hidden divider"></div>
-                        <div class="ui button" tabindex="0">
-                            Type of policy not suited for capital preservation
-                        </div>
-                    </div>
-                </div>
-            </div>
-    </div>
-  </script>
-<!-- comm-details -->
 
 <!-- complaints -->
   <script type="text/ng-template" id="complaints.html">
-    <table class="ui very basic celled table cpl-table">
+    <table class="ui very basic celled table cpl-table" ng-init="getComplaints()">
                     <thead>
                         <tr>
                             <th>Action</th>
@@ -365,116 +610,18 @@
                         </tr>
                     </thead>
                     <tbody>
-                        <tr>
+                        <tr ng-repeat="complaint in complaints">
                             <td>
-                                <div class="ui toggle checkbox"><input type="checkbox"><label></label></div>
+                                <div class="ui toggle checkbox"><input type="checkbox" ng-checked="complaint.approved"><label></label></div>
                             </td>
                             <td>
-                                <div class="one column row"><div class="column"><p class="cpl-table-content" ng-click=goTo('complaintsDetails')>Requested policy surrender in march but was not surrendered…</p></div></div>
+                                <div class="one column row"><div class="column"><p class="cpl-table-content" ng-click=goTo('complaintsDetails/'+complaint.id)>{{complaint.summary}}</p></div></div>
                             </td>
                             <td>
-                                <p>Cancellation</p>
+                                <p>{{complaint.flagType}}</p>
                             </td>
                             <td>
-                                <i class="stop icon red"></i>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>
-                                <div class="ui toggle checkbox"><input type="checkbox" checked="checked"><label></label></div>
-                            </td>
-                            <td>
-                                <div class="one column row"><div class="column"><p class="cpl-table-content">Agent lacked skill and knowledge  </p></div></div>
-                            </td>
-                            <td>
-                                <p>Delays</p>
-                            </td>
-                            <td>
-                                <i class="stop icon yellow"></i>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>
-                                <div class="ui toggle checkbox"><input type="checkbox" checked="checked"><label></label></div>
-                            </td>
-                            <td>
-                                <div class="one column row"><div class="column"><p class="cpl-table-content">Misleading statement</p></div></div>
-                            </td>
-                            <td>
-                                <p>Miscellaneous</p>
-                            </td>
-                            <td>
-                                <i class="stop icon yellow"></i>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>
-                                <div class="ui toggle checkbox"><input type="checkbox"><label></label></div>
-                            </td>
-                            <td>
-                                <div class="one column row"><div class="column"><p class="cpl-table-content">Unhappy with level of service from my current agent </p></div></div>
-                            </td>
-                            <td>
-                                <p>Misrepresentation</p>
-                            </td>
-                            <td>
-                                <i class="stop icon red"></i>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>
-                                <div class="ui toggle checkbox"><input type="checkbox"><label></label></div>
-                            </td>
-                            <td>
-                                <div class="one column row"><div class="column"><p class="cpl-table-content">Product does not meet my needs</p></div></div>
-                            </td>
-                            <td>
-                                <p>Miscellaneous</p>
-                            </td>
-                            <td>
-                                <i class="stop icon grey"></i>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>
-                                <div class="ui toggle checkbox"><input type="checkbox"><label></label></div>
-                            </td>
-                            <td>
-                                <div class="one column row"><div class="column"><p class="cpl-table-content">I was assured that my investment can be taken out on need …</p></div></div>
-                            </td>
-                            <td>
-                                <p>Miscellaneous</p>
-                            </td>
-                            <td>
-                                <i class="stop icon grey"></i>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>
-                                <div class="ui toggle checkbox"><input type="checkbox" checked="checked"><label></label></div>
-                            </td>
-                            <td>
-                                <div class="one column row"><div class="column"><p class="cpl-table-content">WI board of aging and long term care stating concerns about..</p></div></div>
-                            </td>
-                            <td>
-                                <p>Delays</p>
-                            </td>
-                            <td>
-                                <i class="stop icon grey"></i>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>
-                                <div class="ui toggle checkbox"><input type="checkbox"><label></label></div>
-                            </td>
-                            <td>
-                                <div class="one column row"><div class="column"><p class="cpl-table-content">Policy performance missed sales illustration by 66% on the..</p></div></div>
-                            </td>
-                            <td>
-                                <p>Agent mishandling</p>
-                            </td>
-                            <td>
-                                <i class="stop icon yellow"></i>
+                                <i class="stop icon" ng-class="{3:'red',2:'yellow',1:'grey'}[complaint.criticality]"></i>
                             </td>
                         </tr>
                     </tbody>
@@ -491,35 +638,25 @@
                 <div class="fields">
                     <div class="field">
                     <label>Complaint#</label>
-                    <input type="text" value="KIA233166" disabled>
+                    <input type="text" value="{{complaintData.cplNum}}" disabled>
                     </div>
                     <div class="field">
                     <label>Policy</label>
-                    <input type="text" value="243AIK77973" disabled>
+                    <input type="text" value="{{complaintData.policyNum}}" disabled>
                     </div>
                 </div>
                 <div class="fields">
                     <div class="field">
                     <label>Department</label>
-                    <input type="text" value="Insurance & Annuities" disabled>
+                    <input type="text" value="{{complaintData.dept}}" disabled>
                     </div>
                 </div>
                 <div class="fields">
                     <div class="field">
                     <label>Summary</label>
-                    <div class="ui bulleted list" style="text-align:left">
-                        <div class="item">
-                            Customer is 82 year-old widow, active, wealthy and involved in her affairs.
+                        <div class="ui bulleted list" style="text-align:left">
+                            <div ng-bind-html="complaintData.content | unsafe"></div>
                         </div>
-                        <div class="item">
-                            Planning to leave estate to charity. Long-term relationship with adviser for several years. Composition of portfolio changed, 25 stocks purchased, of which 11 deemed unsuitable
-                        </div>
-                        <div class="item">
-                            NM is underwriter for each of these 11 securities
-                        </div>
-                        <div class="item">Advisor acted in good faith and received normal commission</div>
-                        <div class="item">Customer understood and followed recommendations, but these were deemed unsuitably too risky</div>
-                    </div>
                     </div>
                 </div>
             </div>
@@ -527,43 +664,39 @@
         <div class="four wide column">
             <h4>Related  Smart Contracts present in consortium</h4>
             <div class="ui hidden divider"></div>
-            <div class="ui grid">
+            <div class="ui grid" ng-repeat="contract in contracts">
                 <div class="three wide column contract-info">
                     <img class="ui mini right image" src="assets/img/contract.png" alt="">
                 </div>
                 <div class="nine wide column contract-info">
-                    <div class="ui button" tabindex="0">
-                                NMASBT#73701
+                    <div class="ui button" tabindex="0" ng-click="applyContract(contract.id)">
+                                {{contract.ctrNum}}
                     </div>
                 </div>
                 <div class="five wide column contract-info"></div>
                 <div class="nine wide column contract-info">
                     <div class="meta">
-                        <p>Status : Pending</p>
-                        <p>Date : 27MAY2018</p>
-                    </div>
-                </div>
-            </div>
-            <div class="ui grid">
-                <div class="three wide column contract-info">
-                    <img class="ui mini right image" src="assets/img/contract.png" alt="">
-                </div>
-                <div class="nine wide column contract-info">
-                    <div class="ui button" tabindex="0">
-                                UES#20189
-                    </div>
-                </div>
-                <div class="five wide column contract-info"></div>
-                <div class="nine wide column contract-info">
-                    <div class="meta">
-                        <p>Status : Approved</p>
-                        <p>Date : 27MAY2018</p>
+                        <p>Status : {{contract.status}}</p>
+                        <p>Date : {{contract.createdDate}}</p>
                     </div>
                 </div>
             </div>
     </div>
+            <div class="ui small modal">
+                <div class="ui icon header">
+                    Smart Contract Applied !
+                </div>
+                <div class="content">
+                    <p>Smart Contract {{contractNum}} applied to complaint # </p>
+                </div>
+                <div class="actions">
+                    <div class="ui black deny button">
+                    Close
+                    </div>
+                </div>
+            </div>
 
-    <button class="ui button" ng-click=goTo('complaintsInvestigate')>
+    <button class="ui button" ng-click=goTo('complaintsInvestigate/'+complaintData.id+'/'+contracts[1].id)>
     Initiate Investigations
     </button>
     <button class="ui button">
@@ -581,35 +714,32 @@
             <table class="ui celled definition table segment">
                 <tbody>
                     <tr>
-                    <td>Complaint Number</td>
-                    <td>KIA233166</td>
+                    <td>Smart Contract Number</td>
+                    <td>{{contractData.ctrNum}}</td>
                     </tr>
                     <tr>
-                    <td>Description of Complaint</td>
-                    <td>Requested for capital preservation, safety and security but the agent has invested in risky bonds asset that has lost $50K within last 4 months</td>
+                    <td>Description of Contract </td>
+                    <td><div ng-bind-html="contractData.content | unsafe"></div></td>
                     </tr>
                     <tr>
-                    <td>Actions taken up by Insurer to correct course and resolve the complaint</td>
-                    <td>Validated if Agent  was sanctioned by NASD (confirmed in appeal by SEC) and licensed by FINRA
-Complaint forwarded to WISCONSIN board of aging and long term care.
-Paid $250,000 USD in restitution to customer for mis-selling of the product
-Incorporated new Form VIC0830 for all future policies sold to customers greater than 50 years of age</td>
+                    <td>Contract Trigger factors</td>
+                    <td><p ng-bind-html="contractData.triggerFactors | unsafe"></p></td>
                     </tr>
                     <tr>
-                    <td>Feedback of client on resolution and confirming closure of issue</td>
-                    <td>Customer accepted settlement plan. Has formally signed a legal deed</td>
+                    <td>Actions taken</td>
+                    <td><p ng-bind-html="contractData.acttionDetails | unsafe"></p></td>
                     </tr>
                 </tbody>
             </table>
         </div>
-        <button class="ui right floated medium primary button" ng-click=goTo('consortium')>PUBLISH TO CONSORTIUM</button>
+        <button class="ui right floated medium primary button" ng-click="username=='regulator' ? approveContract(contractData.id) : publishContract(contractData.id) ">{{username=='regulator' ? 'APPROVE' : 'Create & Publish'}}</button>
   </script>
 <!-- investigate -->
 
 
 <!-- Communication -->
   <script type="text/ng-template" id="consortium.html">
-    <table class="ui very basic celled table cpl-table">
+    <table class="ui very basic celled table cpl-table" ng-init="username=='regulator' ? getAllContracts() : getUnapprovedContracts()">
                     <thead>
                         <tr>
                             <th></th>
@@ -619,83 +749,23 @@ Incorporated new Form VIC0830 for all future policies sold to customers greater 
                         </tr>
                     </thead>
                     <tbody>
-                        <tr>
+                        <tr ng-repeat="contract in contractsList">
                             <td>
                                 <img class="ui mini right spaced image" src="assets/img/contract.png" alt="">
-                                <div class="ui button" tabindex="0" style="width: 150px;">NMASBT#73701</div>
+                                <div class="ui button" tabindex="0" style="width: 150px;">{{contract.ctrNum}}</div>
                             </td>
                             <td>
                                 <div class="meta">
-                                    <p>Status : Approved</p>
-                                    <p>Date : 31MAY2018</p>
+                                    <p>Status : {{contract.status}}</p>
+                                    <p>Date : {{contract.createdDate}}</p>
                                 </div>
                             </td>
                             <td>
-                                <img class="ui small right image" src="assets/img/metlife.png" alt="">
+                                {{contract.createdBy}}
                             </td>
                             <td>
-                                <button class="ui button primary">
-                                    APPROVED
-                                </button>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>
-                                <img class="ui mini right spaced image" src="assets/img/contract.png" alt="">
-                                <div class="ui button" tabindex="0" style="width: 150px;">UES#20189</div>
-                            </td>
-                            <td>
-                                <div class="meta">
-                                    <p>Status : Pending</p>
-                                    <p>Date : 27MAY2018</p>
-                                </div>
-                            </td>
-                            <td>
-                                <img class="ui small right image" src="assets/img/nyl.png" alt="">
-                            </td>
-                            <td>
-                                <button class="ui button">
-                                    EDIT
-                                </button>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>
-                                <img class="ui mini right spaced image" src="assets/img/contract.png" alt="">
-                                <div class="ui button" tabindex="0"  style="width: 150px;">NMASBT#73701</div>
-                            </td>
-                            <td>
-                                <div class="meta">
-                                    <p>Status : Pending</p>
-                                    <p>Date : 27MAY2018</p>
-                                </div>
-                            </td>
-                            <td>
-                                <img class="ui small right image" src="assets/img/mmfg.png" alt="">
-                            </td>
-                            <td>
-                                <button class="ui button">
-                                    EDIT
-                                </button>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>
-                                <img class="ui mini right spaced image" src="assets/img/contract.png" alt="">
-                                <div class="ui button" tabindex="0" style="width: 150px;">UES#20189</div>
-                            </td>
-                            <td>
-                                <div class="meta">
-                                    <p>Status : Pending</p>
-                                    <p>Date : 27MAY2018</p>
-                                </div>
-                            </td>
-                            <td>
-                                <img class="ui tiny middle image" src="assets/img/usaa.png" alt="">
-                            </td>
-                            <td>
-                                <button class="ui button">
-                                    EDIT
+                                <button class="ui button" ng-class="{'approved':'primary','pending':'default'}[contract.status]" ng-click="username=='regulator' ? editContract(contract.id) : ''">
+                                    {{username=='regulator' ?  (contract.status == 'approved' ? 'APPROVED' : 'EDIT' ): (contract.status == 'approved' ? 'APPROVED' : 'PUBLISHED' )}}
                                 </button>
                             </td>
                         </tr>
